@@ -7,6 +7,7 @@ import json
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _, ugettext
 from django import VERSION as django_version
+from django.contrib.auth import get_permission_codename
 
 from mptt.exceptions import InvalidMove
 
@@ -130,11 +131,8 @@ class ChangeList(main.ChangeList):
 
     def get_queryset(self, *args, **kwargs):
         mptt_opts = self.model._mptt_meta
-        get_qs = getattr(super(ChangeList, self), 'get_queryset', super(ChangeList, self).get_query_set)
+        get_qs = getattr(super(ChangeList, self), 'get_queryset')
         return get_qs(*args, **kwargs).order_by(mptt_opts.tree_id_attr, mptt_opts.left_attr)
-
-    if django_version < (1, 6):
-        get_query_set = get_queryset
 
         @property
         def query_set(self):
@@ -160,7 +158,7 @@ class ChangeList(main.ChangeList):
         super(ChangeList, self).get_results(request)
 
         opts = self.model_admin.opts
-        label = opts.app_label + '.' + opts.get_change_permission()
+        label = opts.app_label + '.' + get_permission_codename('change', opts)
         for item in self.result_list:
             if self.model_admin.enable_object_permissions:
                 item.feincms_editable = self.model_admin.has_change_permission(request, item)
@@ -373,7 +371,7 @@ class TreeAdmin(admin.ModelAdmin):
         """
         if self.enable_object_permissions:
             opts = self.opts
-            r = request.user.has_perm(opts.app_label + '.' + opts.get_change_permission(), obj)
+            r = request.user.has_perm(opts.app_label + '.' + get_permission_codename('change', opts), obj)
         else:
             r = True
 
@@ -386,7 +384,7 @@ class TreeAdmin(admin.ModelAdmin):
         """
         if self.enable_object_permissions:
             opts = self.opts
-            r = request.user.has_perm(opts.app_label + '.' + opts.get_delete_permission(), obj)
+            r = request.user.has_perm(opts.app_label + '.' + get_permission_codename('delete', opts), obj)
         else:
             r = True
 
